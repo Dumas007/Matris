@@ -34,17 +34,17 @@
         }
         .matrix-row input {
             width: 50px;
-            padding: 10px; /* Aumentar el padding para más espacio */
-            border-radius: 8px; /* Bordes redondeados */
+            padding: 10px;
+            border-radius: 8px;
             border: 1px solid #ddd;
-            background-color: #f9f9f9; /* Color de fondo suave */
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Sombra ligera */
-            transition: border-color 0.3s, box-shadow 0.3s; /* Transiciones suaves */
+            background-color: #f9f9f9;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
         .matrix-row input:focus {
-            border-color: #4A90E2; /* Color de borde al enfocar */
-            box-shadow: 0 0 5px rgba(74, 144, 226, 0.5); /* Sombra al enfocar */
-            outline: none; /* Quitar el contorno predeterminado */
+            border-color: #4A90E2;
+            box-shadow: 0 0 5px rgba(74, 144, 226, 0.5);
+            outline: none;
         }
         .btn {
             background-color: #4A90E2;
@@ -78,14 +78,21 @@
             color: #4A90E2;
         }
         h3{
-  text-align: center;
+            text-align: center;
             color: grey;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Resolver un sistema de ecuaciones Eliminación Gaussiana</h2>
+        <h2>Calculadora de Sistemas de Ecuaciones</h2>
+        <!-- Selección de método -->
+        <label for="method"><h3>Selecciona el método:</h3></label>
+        <select id="method" onchange="showMethod()">
+            <option value="gauss">Eliminación Gaussiana</option>
+            <option value="gauss-jordan">Gauss-Jordan</option>
+        </select>
+
         <!-- Selección de dimensión del sistema -->
         <label for="dimension"><h3>Selecciona la dimensión del sistema:</h3></label>
         <select id="dimension" onchange="generateInputs()">
@@ -93,27 +100,29 @@
             <option value="3">3x3</option>
             <option value="4">4x4</option>
         </select>
-        
+
         <div id="matrix-input"></div>
 
         <button class="btn" onclick="solveSystem()">Resolver</button>
-        
+
         <div id="solution"></div>
     </div>
 
     <script>
+        function showMethod() {
+            document.getElementById("solution").textContent = ''; // Limpiar resultado previo
+        }
+
         function generateInputs() {
             const dimension = parseInt(document.getElementById("dimension").value);
             const matrixInputDiv = document.getElementById("matrix-input");
             matrixInputDiv.innerHTML = ""; // Limpiar los campos anteriores
 
-            // Generar entradas dinámicamente según la dimensión seleccionada
             for (let i = 1; i <= dimension; i++) {
                 let rowDiv = document.createElement('div');
                 rowDiv.className = 'matrix-row';
 
                 for (let j = 1; j <= dimension; j++) {
-                    // Crear inputs para coeficientes de las variables
                     let input = document.createElement('input');
                     input.type = 'number';
                     input.id = `a${i}${j}`;
@@ -121,7 +130,6 @@
                     rowDiv.appendChild(input);
                 }
 
-                // Crear input para el término independiente
                 let bInput = document.createElement('input');
                 bInput.type = 'number';
                 bInput.id = `b${i}`;
@@ -132,15 +140,14 @@
             }
         }
 
-        // Llama a la función al cargar la página para generar un sistema 2x2 por defecto
         window.onload = generateInputs;
 
         function solveSystem() {
+            const method = document.getElementById("method").value;
             const dimension = parseInt(document.getElementById("dimension").value);
             let matrix = [];
             let constants = [];
 
-            // Obtener los valores ingresados
             for (let i = 1; i <= dimension; i++) {
                 let row = [];
                 for (let j = 1; j <= dimension; j++) {
@@ -161,16 +168,13 @@
                 constants.push(bValue);
             }
 
-            // Verificar si el determinante es 0
             if (isSingular(matrix)) {
                 document.getElementById("solution").textContent = "El sistema no tiene solución única (determinante es 0).";
                 return;
             }
 
-            // Resolver el sistema utilizando eliminación gaussiana
-            let result = gauss(matrix, constants);
+            let result = method === "gauss" ? gauss(matrix, constants) : gaussJordan(matrix, constants);
 
-            // Mostrar resultado
             if (result) {
                 let solution = result.map((x, i) => `x${i + 1} = ${x.toFixed(2)}`).join(', ');
                 document.getElementById("solution").textContent = solution;
@@ -179,12 +183,10 @@
             }
         }
 
-        // Función de eliminación gaussiana
         function gauss(A, b) {
             let n = A.length;
 
             for (let i = 0; i < n; i++) {
-                // Encontrar el mayor valor en la columna i
                 let maxEl = Math.abs(A[i][i]);
                 let maxRow = i;
                 for (let k = i + 1; k < n; k++) {
@@ -194,11 +196,9 @@
                     }
                 }
 
-                // Intercambiar filas
                 [A[i], A[maxRow]] = [A[maxRow], A[i]];
                 [b[i], b[maxRow]] = [b[maxRow], b[i]];
 
-                // Hacer cero los elementos de la columna i debajo de la diagonal principal
                 for (let k = i + 1; k < n; k++) {
                     let c = -A[k][i] / A[i][i];
                     for (let j = i; j < n; j++) {
@@ -212,7 +212,6 @@
                 }
             }
 
-            // Resolver Ax = b
             let x = new Array(n).fill(0);
             for (let i = n - 1; i >= 0; i--) {
                 x[i] = b[i] / A[i][i];
@@ -224,13 +223,35 @@
             return x;
         }
 
-        // Función para verificar si la matriz es singular (determinante es 0)
+        function gaussJordan(A, b) {
+            let n = A.length;
+
+            for (let i = 0; i < n; i++) {
+                let pivot = A[i][i];
+                for (let j = 0; j < n; j++) {
+                    A[i][j] /= pivot;
+                }
+                b[i] /= pivot;
+
+                for (let k = 0; k < n; k++) {
+                    if (i !== k) {
+                        let factor = A[k][i];
+                        for (let j = 0; j < n; j++) {
+                            A[k][j] -= factor * A[i][j];
+                        }
+                        b[k] -= factor * b[i];
+                    }
+                }
+            }
+
+            return b;
+        }
+
         function isSingular(matrix) {
             let det = determinant(matrix);
             return det === 0;
         }
 
-        // Función para calcular el determinante de una matriz cuadrada
         function determinant(matrix) {
             const n = matrix.length;
 
